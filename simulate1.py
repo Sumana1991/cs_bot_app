@@ -1,5 +1,5 @@
-pip install numpy
-pip install streamlit
+pip install numpy &&
+pip install streamlit &&
 pip install matplotlib
 
 import streamlit as st
