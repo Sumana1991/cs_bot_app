@@ -1,4 +1,6 @@
-!pip install numpy matplotlib streamlit
+pip install numpy
+pip install streamlit
+pip install matplotlib
 
 import streamlit as st
 import matplotlib.pyplot as plt
