@@ -1,18 +1,58 @@
 import streamlit as st
-from langchain.llms import OpenAI
+from langchain.chat_models import ChatOpenAI
+from langchain.memory import ConversationBufferWindowMemory
+from langchain.chains import LLMChain
+from langchain.prompts import PromptTemplate
+from decouple import config
 
-st.title('🦜🔗 Quickstart App')
+prompt=PromptTemplate(
+    input_variables=["chat_history", "question"],
+    template="""You are a kind AI agent, you are currently talking to a human\
+                answer him/her in a friendly tone and also have some sense of humor
+                
+                chat_history: {chat_history}
 
-openai_api_key = st.sidebar.text_input('OpenAI API Key')
+                Human: {question}
+                
+                AI:"""
+)
 
-def generate_response(input_text):
-  llm = OpenAI(temperature=0.7, openai_api_key=openai_api_key)
-  st.info(llm(input_text))
+llm = ChatOpenAI(openai_api_key=config("OPENAI_API_KEY"))
+memory = ConversationBufferWindowMemory(memory_key="chat_history", k=5)
+llm_chain=LLMChain(
+    llm=llm,
+    memory=memory,
+    prompt=prompt
+)
 
-with st.form('my_form'):
-  text = st.text_area('Enter text:', 'What are the three key pieces of advice for learning how to code?')
-  submitted = st.form_submit_button('Submit')
-  if not openai_api_key.startswith('sk-'):
-    st.warning('Please enter your OpenAI API key!', icon='⚠')
-  if submitted and openai_api_key.startswith('sk-'):
-    generate_response(text)
+st.set_page_config(
+    page_title="ChatGPT Clone",
+    page_icon="😎",
+    layout="wide"
+)
+
+st.title("ChatGPT Clone")
+
+if "messages" not in st.session_state.keys():
+    st.session_state.messages=[
+        {"role": "assistant","content": "Hello there, ask anything you wish..."}
+        ]
+    
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.write(message["content"])
+
+user_prompt = st.chat_input()
+
+if user_prompt is not None:
+    st.session_state.messages.append({"role": "user","content": user_prompt})
+    with st.chat_message("user"):
+        st.write(user_prompt)
+
+if st.session_state.messages[-1]["role"] != "assistant":
+    with st.chat_message("assistant"):
+        with st.spinner("Loading..."):
+            ai_response = llm_chain.predict(question=user_prompt)
+            st.write(ai_response)
+    new_ai_message={"role": "assistant","content": ai_response}
+    st.session_state.messages.append(new_ai_message)
